@@ -1,0 +1,57 @@
+{
+  "name": "postgres-mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for PostgreSQL databases",
+  "type": "module",
+  "bin": {
+    "postgres-mcp-server": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "postgres",
+    "postgresql",
+    "ai",
+    "database"
+  ],
+  "author": "",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1",
+    "pg-format": "^1.0.4",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
+    "@types/pg-format": "^1.0.5",
+    "eslint": "^9.20.1",
+    "pg-mem": "^3.0.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^3.0.5"
+  }
+}

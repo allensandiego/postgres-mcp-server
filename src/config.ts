@@ -1,0 +1,98 @@
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+export interface ServerConfig {
+  databaseUrl?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  user?: string;
+  password?: string;
+  ssl?: boolean | Record<string, unknown>;
+  allowWrite: boolean;
+  maxRowLimit: number;
+  queryTimeoutMs: number;
+  statementTimeoutMs: number;
+  maxConnections: number;
+}
+
+export function parseBoolean(value: string | undefined, defaultValue = false): boolean {
+  if (!value) return defaultValue;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+
+export function parseNumber(value: string | undefined, defaultValue: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value.trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
+  const databaseUrl = env.DATABASE_URL || undefined;
+  const host = env.PGHOST || env.POSTGRES_HOST || undefined;
+  const port = env.PGPORT ? parseNumber(env.PGPORT, 5432) : undefined;
+  const database = env.PGDATABASE || env.POSTGRES_DB || undefined;
+  const user = env.PGUSER || env.POSTGRES_USER || undefined;
+  const password = env.PGPASSWORD || env.POSTGRES_PASSWORD || undefined;
+  
+  const sslMode = env.PGSSLMODE?.toLowerCase();
+  const ssl = sslMode === "require" || sslMode === "verify-full" || sslMode === "verify-ca" || parseBoolean(env.PGSSL, false)
+    ? { rejectUnauthorized: sslMode === "verify-full" }
+    : undefined;
+
+  const allowWrite = parseBoolean(env.ALLOW_WRITE, false);
+  const maxRowLimit = parseNumber(env.MAX_ROW_LIMIT || env.ROW_LIMIT, 1000);
+  const queryTimeoutMs = parseNumber(env.QUERY_TIMEOUT_MS, 30000);
+  const statementTimeoutMs = parseNumber(env.STATEMENT_TIMEOUT_MS, queryTimeoutMs);
+  const maxConnections = parseNumber(env.MAX_CONNECTIONS || env.POOL_MAX, 10);
+
+  return {
+    databaseUrl,
+    host,
+    port,
+    database,
+    user,
+    password,
+    ssl,
+    allowWrite,
+    maxRowLimit,
+    queryTimeoutMs,
+    statementTimeoutMs,
+    maxConnections,
+  };
+}
+
+/**
+ * Returns a sanitized summary of configuration safe for logging (no credentials).
+ */
+export function sanitizeConfig(config: ServerConfig): Record<string, unknown> {
+  let sanitizedDb = config.database;
+  let sanitizedHost = config.host;
+  let sanitizedUser = config.user;
+
+  if (config.databaseUrl) {
+    try {
+      const parsed = new URL(config.databaseUrl);
+      sanitizedHost = parsed.hostname;
+      sanitizedUser = parsed.username || undefined;
+      sanitizedDb = parsed.pathname.replace(/^\//, "") || undefined;
+    } catch {
+      // If URL parsing fails, omit
+    }
+  }
+
+  return {
+    host: sanitizedHost ?? "localhost",
+    port: config.port ?? 5432,
+    database: sanitizedDb ?? "postgres",
+    user: sanitizedUser ?? "postgres",
+    allowWrite: config.allowWrite,
+    maxRowLimit: config.maxRowLimit,
+    queryTimeoutMs: config.queryTimeoutMs,
+    statementTimeoutMs: config.statementTimeoutMs,
+    maxConnections: config.maxConnections,
+  };
+}
