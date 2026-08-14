@@ -13,6 +13,14 @@
     "README.md",
     "LICENSE.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allensandiego/postgres-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/allensandiego/postgres-mcp-server/issues"
+  },
+  "homepage": "https://github.com/allensandiego/postgres-mcp-server#readme",
   "publishConfig": {
     "access": "public"
   },
