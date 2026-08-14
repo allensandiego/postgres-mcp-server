@@ -1,5 +1,5 @@
 {
-  "name": "postgres-mcp-server",
+  "name": "@allensandiego/postgres-mcp-server",
   "version": "0.1.0",
   "description": "Model Context Protocol (MCP) server for PostgreSQL databases",
   "type": "module",

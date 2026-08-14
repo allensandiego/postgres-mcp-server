@@ -25,7 +25,7 @@ export DATABASE_URL="postgres://user:password@localhost:5432/mydb"
 # export ALLOW_WRITE=1
 
 # Start the server
-npx postgres-mcp-server
+npx @allensandiego/postgres-mcp-server
 ```
 
 ### Local Development
@@ -125,7 +125,7 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["postgres-mcp-server"],
+      "args": ["@allensandiego/postgres-mcp-server"],
       "env": {
         "DATABASE_URL": "postgres://username:password@localhost:5432/mydb",
         "ALLOW_WRITE": "0"
@@ -142,7 +142,7 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["postgres-mcp-server"],
+      "args": ["@allensandiego/postgres-mcp-server"],
       "env": {
         "DATABASE_URL": "postgres://username:password@localhost:5432/mydb"
       }
