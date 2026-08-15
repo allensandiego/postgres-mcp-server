@@ -35,6 +35,7 @@ export function loadConfig(
   argv: string[] = typeof process !== "undefined" && process.argv ? process.argv.slice(2) : []
 ): ServerConfig {
   let cliDatabaseUrl: string | undefined;
+  let cliAllowWrite: boolean | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg.startsWith("postgres://") || arg.startsWith("postgresql://")) {
@@ -43,6 +44,10 @@ export function loadConfig(
       cliDatabaseUrl = arg.substring(arg.indexOf("=") + 1);
     } else if ((arg === "--url" || arg === "-u" || arg === "--connection-string") && argv[i + 1]) {
       cliDatabaseUrl = argv[i + 1];
+    } else if (arg === "--allow-write" || arg === "--write" || arg === "-w") {
+      cliAllowWrite = true;
+    } else if (arg.startsWith("--allow-write=")) {
+      cliAllowWrite = parseBoolean(arg.substring(arg.indexOf("=") + 1), false);
     }
   }
 
@@ -69,7 +74,7 @@ export function loadConfig(
     ? { rejectUnauthorized: sslMode === "verify-full" }
     : undefined;
 
-  const allowWrite = parseBoolean(env.ALLOW_WRITE, false);
+  const allowWrite = cliAllowWrite !== undefined ? cliAllowWrite : parseBoolean(env.ALLOW_WRITE, false);
   const maxRowLimit = parseNumber(env.MAX_ROW_LIMIT || env.ROW_LIMIT, 1000);
   const queryTimeoutMs = parseNumber(env.QUERY_TIMEOUT_MS, 30000);
   const statementTimeoutMs = parseNumber(env.STATEMENT_TIMEOUT_MS, queryTimeoutMs);

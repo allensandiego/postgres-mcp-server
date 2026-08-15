@@ -84,4 +84,21 @@ describe("config module", () => {
     const config3 = loadConfig({}, ["--url", "postgres://u:p@host:5432/db"]);
     expect(config3.databaseUrl).toBe("postgres://u:p@host:5432/db");
   });
+
+  it("parses CLI arguments for allowWrite flag", () => {
+    const config1 = loadConfig({}, ["postgres://postgres:postgres@pg.lan:5432/postgres", "--allow-write"]);
+    expect(config1.allowWrite).toBe(true);
+
+    const config2 = loadConfig({}, ["postgres://postgres:postgres@pg.lan:5432/postgres", "--write"]);
+    expect(config2.allowWrite).toBe(true);
+
+    const config3 = loadConfig({}, ["postgres://postgres:postgres@pg.lan:5432/postgres", "-w"]);
+    expect(config3.allowWrite).toBe(true);
+
+    const config4 = loadConfig({ ALLOW_WRITE: "1" }, ["postgres://postgres:postgres@pg.lan:5432/postgres"]);
+    expect(config4.allowWrite).toBe(true);
+
+    const config5 = loadConfig({ ALLOW_WRITE: "1" }, ["postgres://postgres:postgres@pg.lan:5432/postgres", "--allow-write=false"]);
+    expect(config5.allowWrite).toBe(false);
+  });
 });

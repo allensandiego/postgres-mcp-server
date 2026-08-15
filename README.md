@@ -20,11 +20,15 @@ A Model Context Protocol (MCP) server for PostgreSQL databases. Connects AI assi
 Pass the connection string directly as a command-line argument or via environment variable:
 
 ```bash
-# Pass connection string as an argument
+# Read-only mode (default)
 npx @allensandiego/postgres-mcp-server postgres://user:password@localhost:5432/mydb
 
-# Or set via environment variable
+# Enable write mode via CLI flag
+npx @allensandiego/postgres-mcp-server postgres://user:password@localhost:5432/mydb --allow-write
+
+# Or configure via environment variables
 export DATABASE_URL="postgres://user:password@localhost:5432/mydb"
+export ALLOW_WRITE=1   # Optional: enable write queries
 npx @allensandiego/postgres-mcp-server
 ```
 
@@ -33,8 +37,11 @@ npx @allensandiego/postgres-mcp-server
 ```bash
 npm install -g @allensandiego/postgres-mcp-server
 
-# Run directly
+# Run read-only
 postgres-mcp-server postgres://user:password@localhost:5432/mydb
+
+# Run with write operations enabled
+postgres-mcp-server postgres://user:password@localhost:5432/mydb --allow-write
 ```
 
 ### Local Development
@@ -49,14 +56,14 @@ npm install
 npm run build
 
 # Run with tsx in development
-npm run dev -- postgres://user:password@localhost:5432/mydb
+npm run dev -- postgres://user:password@localhost:5432/mydb --allow-write
 ```
 
 ---
 
 ## Configuration
 
-The server can be configured via CLI arguments or environment variables:
+The server can be configured via CLI flags or environment variables:
 
 ### Connection String
 
@@ -65,18 +72,25 @@ You can provide the connection string in any of the following ways (in order of 
 2. **CLI Option**: `postgres-mcp-server --url=postgres://...` or `--connection-string=...`
 3. **Environment Variables**: `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_CONNECTION_STRING`, `PG_CONNECTION_STRING`, `DATABASE_URI`, `POSTGRES_URI`, `PGURL`, or `PG_URL`
 
-### Environment Variables
+### Enabling Write Operations (`ALLOW_WRITE`)
+
+By default, the server runs in **read-only mode** (`run_write_query` will reject any destructive or mutating SQL).
+To enable write queries (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER):
+- **Via CLI flag**: Pass `--allow-write`, `--write`, or `-w`
+- **Via Environment Variable**: Set `ALLOW_WRITE=1` (or `ALLOW_WRITE=true`)
+
+### Environment Variables Reference
 
 | Variable | Description | Default |
 |---|---|---|
 | `DATABASE_URL` / `POSTGRES_URL` / `POSTGRES_CONNECTION_STRING` | Full PostgreSQL connection URI (`postgres://user:pass@host:port/db`) | None |
+| `ALLOW_WRITE` | Enables write queries (`1`, `true`, `yes`, `on`) | `false` (Read-only) |
 | `PGHOST` / `POSTGRES_HOST` | Database host name | `localhost` |
 | `PGPORT` | Database port number | `5432` |
 | `PGDATABASE` / `POSTGRES_DB` | Database name | `postgres` |
 | `PGUSER` / `POSTGRES_USER` | Database user name | `postgres` |
 | `PGPASSWORD` / `POSTGRES_PASSWORD` | Database password | None |
 | `PGSSLMODE` / `PGSSL` | SSL configuration mode (`require`, `verify-full`, etc.) | Disabled |
-| `ALLOW_WRITE` | Enables write queries (`1`, `true`, `yes`) | `false` (Read-only) |
 | `MAX_ROW_LIMIT` / `ROW_LIMIT` | Maximum rows returned per query | `1000` |
 | `QUERY_TIMEOUT_MS` | Per-query timeout in milliseconds | `30000` (30s) |
 | `MAX_CONNECTIONS` / `POOL_MAX` | Maximum active database connections in pool | `10` |
@@ -126,7 +140,7 @@ Execute a read-only parameterized `SELECT` query.
 - **Output**: `{ columns, rows, rowCount, truncated }`.
 
 ### 7. `run_write_query`
-Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when `ALLOW_WRITE=1`.
+Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when `ALLOW_WRITE=1` or `--allow-write` is provided.
 - **Arguments**:
   - `sql` *(required string)*: SQL write statement.
   - `params` *(optional array)*: Parameter values.
@@ -138,6 +152,7 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
 
 ### Gemini CLI Configuration (`mcp_config.json` or `settings.json`)
 
+**Read-only mode (Default)**:
 ```json
 {
   "mcpServers": {
@@ -148,6 +163,39 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
         "@allensandiego/postgres-mcp-server@latest",
         "postgres://username:password@localhost:5432/mydb"
       ]
+    }
+  }
+}
+```
+
+**Write-enabled mode**:
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@allensandiego/postgres-mcp-server@latest",
+        "postgres://username:password@localhost:5432/mydb",
+        "--allow-write"
+      ]
+    }
+  }
+}
+```
+
+*Or via environment variables:*
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@allensandiego/postgres-mcp-server@latest"],
+      "env": {
+        "DATABASE_URL": "postgres://username:password@localhost:5432/mydb",
+        "ALLOW_WRITE": "1"
+      }
     }
   }
 }
@@ -164,7 +212,10 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
         "-y",
         "@allensandiego/postgres-mcp-server@latest",
         "postgres://username:password@localhost:5432/mydb"
-      ]
+      ],
+      "env": {
+        "ALLOW_WRITE": "0"
+      }
     }
   }
 }
@@ -181,7 +232,10 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
         "-y",
         "@allensandiego/postgres-mcp-server@latest",
         "postgres://username:password@localhost:5432/mydb"
-      ]
+      ],
+      "env": {
+        "ALLOW_WRITE": "1"
+      }
     }
   }
 }
