@@ -59,9 +59,29 @@ describe("config module", () => {
 
     const sanitized = sanitizeConfig(config);
     expect(sanitized.host).toBe("db.prod.com");
+    expect(sanitized.port).toBe(5432);
     expect(sanitized.database).toBe("maindb");
     expect(sanitized.user).toBe("superadmin");
     // Ensure password is not present in sanitized output
     expect(JSON.stringify(sanitized)).not.toContain("supersecret");
+  });
+
+  it("supports POSTGRES_URL, POSTGRES_CONNECTION_STRING and other env aliases", () => {
+    const config1 = loadConfig({ POSTGRES_URL: "postgres://u:p@host1:5432/db1" });
+    expect(config1.databaseUrl).toBe("postgres://u:p@host1:5432/db1");
+
+    const config2 = loadConfig({ POSTGRES_CONNECTION_STRING: "postgresql://u:p@host2:5432/db2" });
+    expect(config2.databaseUrl).toBe("postgresql://u:p@host2:5432/db2");
+  });
+
+  it("parses CLI arguments for connection string", () => {
+    const config1 = loadConfig({}, ["postgres://postgres:postgres@pg.lan:5432/postgres"]);
+    expect(config1.databaseUrl).toBe("postgres://postgres:postgres@pg.lan:5432/postgres");
+
+    const config2 = loadConfig({}, ["--connection-string=postgresql://u:p@host:5432/db"]);
+    expect(config2.databaseUrl).toBe("postgresql://u:p@host:5432/db");
+
+    const config3 = loadConfig({}, ["--url", "postgres://u:p@host:5432/db"]);
+    expect(config3.databaseUrl).toBe("postgres://u:p@host:5432/db");
   });
 });

@@ -17,22 +17,31 @@ A Model Context Protocol (MCP) server for PostgreSQL databases. Connects AI assi
 
 ### Running via NPX
 
+Pass the connection string directly as a command-line argument or via environment variable:
+
 ```bash
-# Set your connection string
+# Pass connection string as an argument
+npx @allensandiego/postgres-mcp-server postgres://user:password@localhost:5432/mydb
+
+# Or set via environment variable
 export DATABASE_URL="postgres://user:password@localhost:5432/mydb"
-
-# Optional: enable write mode
-# export ALLOW_WRITE=1
-
-# Start the server
 npx @allensandiego/postgres-mcp-server
+```
+
+### Global Installation
+
+```bash
+npm install -g @allensandiego/postgres-mcp-server
+
+# Run directly
+postgres-mcp-server postgres://user:password@localhost:5432/mydb
 ```
 
 ### Local Development
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/your-org/postgres-mcp-server.git
+git clone https://github.com/allensandiego/postgres-mcp-server.git
 cd postgres-mcp-server
 npm install
 
@@ -40,18 +49,27 @@ npm install
 npm run build
 
 # Run with tsx in development
-npm run dev
+npm run dev -- postgres://user:password@localhost:5432/mydb
 ```
 
 ---
 
 ## Configuration
 
-Configure the server using environment variables:
+The server can be configured via CLI arguments or environment variables:
+
+### Connection String
+
+You can provide the connection string in any of the following ways (in order of precedence):
+1. **CLI Positional Argument**: `postgres-mcp-server postgres://user:password@host:port/db`
+2. **CLI Option**: `postgres-mcp-server --url=postgres://...` or `--connection-string=...`
+3. **Environment Variables**: `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_CONNECTION_STRING`, `PG_CONNECTION_STRING`, `DATABASE_URI`, `POSTGRES_URI`, `PGURL`, or `PG_URL`
+
+### Environment Variables
 
 | Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | Full PostgreSQL connection URI (`postgres://user:pass@host:port/db`) | None |
+| `DATABASE_URL` / `POSTGRES_URL` / `POSTGRES_CONNECTION_STRING` | Full PostgreSQL connection URI (`postgres://user:pass@host:port/db`) | None |
 | `PGHOST` / `POSTGRES_HOST` | Database host name | `localhost` |
 | `PGPORT` | Database port number | `5432` |
 | `PGDATABASE` / `POSTGRES_DB` | Database name | `postgres` |
@@ -118,6 +136,23 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
 
 ## MCP Client Setup Examples
 
+### Gemini CLI Configuration (`mcp_config.json` or `settings.json`)
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@allensandiego/postgres-mcp-server@latest",
+        "postgres://username:password@localhost:5432/mydb"
+      ]
+    }
+  }
+}
+```
+
 ### Claude Desktop Configuration (`claude_desktop_config.json`)
 
 ```json
@@ -125,11 +160,11 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["@allensandiego/postgres-mcp-server"],
-      "env": {
-        "DATABASE_URL": "postgres://username:password@localhost:5432/mydb",
-        "ALLOW_WRITE": "0"
-      }
+      "args": [
+        "-y",
+        "@allensandiego/postgres-mcp-server@latest",
+        "postgres://username:password@localhost:5432/mydb"
+      ]
     }
   }
 }
@@ -142,10 +177,11 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["@allensandiego/postgres-mcp-server"],
-      "env": {
-        "DATABASE_URL": "postgres://username:password@localhost:5432/mydb"
-      }
+      "args": [
+        "-y",
+        "@allensandiego/postgres-mcp-server@latest",
+        "postgres://username:password@localhost:5432/mydb"
+      ]
     }
   }
 }

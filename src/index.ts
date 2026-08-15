@@ -29,21 +29,45 @@ async function main() {
   const transport = new StdioServerTransport();
 
   // Handle graceful shutdown
-  const shutdown = async (signal: string) => {
-    console.error(`Received ${signal}, shutting down gracefully...`);
+  let isShuttingDown = false;
+  const shutdown = async (trigger: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.error(`Received ${trigger}, shutting down...`);
+
+    // Force exit after a short timeout so shutdown never blocks the client
+    const forceTimer = setTimeout(() => {
+      process.exit(0);
+    }, 500);
+    forceTimer.unref();
+
     try {
       await server.close();
-      await pool.close();
-      console.error("Server stopped cleanly.");
-      process.exit(0);
     } catch (err: any) {
-      console.error("Error during shutdown:", err.message);
-      process.exit(1);
+      console.error("Error closing server:", err?.message);
     }
+
+    try {
+      await pool.close();
+    } catch (err: any) {
+      console.error("Error closing database pool:", err?.message);
+    }
+
+    console.error("Server stopped cleanly.");
+    process.exit(0);
   };
 
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGHUP", () => shutdown("SIGHUP"));
+
+  // Handle stdin stream close/end (crucial when parent process disconnects)
+  process.stdin.on("close", () => shutdown("stdin close"));
+  process.stdin.on("end", () => shutdown("stdin end"));
+  if (transport.onclose !== undefined) {
+    transport.onclose = () => shutdown("transport close");
+  }
 
   process.on("unhandledRejection", (reason) => {
     console.error("Unhandled promise rejection:", reason instanceof Error ? reason.message : String(reason));

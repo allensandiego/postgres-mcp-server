@@ -30,8 +30,34 @@ export function parseNumber(value: string | undefined, defaultValue: number): nu
   return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
-  const databaseUrl = env.DATABASE_URL || undefined;
+export function loadConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  argv: string[] = typeof process !== "undefined" && process.argv ? process.argv.slice(2) : []
+): ServerConfig {
+  let cliDatabaseUrl: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg.startsWith("postgres://") || arg.startsWith("postgresql://")) {
+      cliDatabaseUrl = arg;
+    } else if (arg.startsWith("--url=") || arg.startsWith("--connection-string=") || arg.startsWith("--database-url=")) {
+      cliDatabaseUrl = arg.substring(arg.indexOf("=") + 1);
+    } else if ((arg === "--url" || arg === "-u" || arg === "--connection-string") && argv[i + 1]) {
+      cliDatabaseUrl = argv[i + 1];
+    }
+  }
+
+  const databaseUrl =
+    cliDatabaseUrl ||
+    env.DATABASE_URL ||
+    env.POSTGRES_URL ||
+    env.POSTGRES_CONNECTION_STRING ||
+    env.PG_CONNECTION_STRING ||
+    env.DATABASE_URI ||
+    env.POSTGRES_URI ||
+    env.PGURL ||
+    env.PG_URL ||
+    undefined;
+
   const host = env.PGHOST || env.POSTGRES_HOST || undefined;
   const port = env.PGPORT ? parseNumber(env.PGPORT, 5432) : undefined;
   const database = env.PGDATABASE || env.POSTGRES_DB || undefined;
@@ -72,6 +98,7 @@ export function sanitizeConfig(config: ServerConfig): Record<string, unknown> {
   let sanitizedDb = config.database;
   let sanitizedHost = config.host;
   let sanitizedUser = config.user;
+  let sanitizedPort = config.port;
 
   if (config.databaseUrl) {
     try {
@@ -79,6 +106,9 @@ export function sanitizeConfig(config: ServerConfig): Record<string, unknown> {
       sanitizedHost = parsed.hostname;
       sanitizedUser = parsed.username || undefined;
       sanitizedDb = parsed.pathname.replace(/^\//, "") || undefined;
+      if (parsed.port) {
+        sanitizedPort = parseInt(parsed.port, 10);
+      }
     } catch {
       // If URL parsing fails, omit
     }
@@ -86,7 +116,7 @@ export function sanitizeConfig(config: ServerConfig): Record<string, unknown> {
 
   return {
     host: sanitizedHost ?? "localhost",
-    port: config.port ?? 5432,
+    port: sanitizedPort ?? 5432,
     database: sanitizedDb ?? "postgres",
     user: sanitizedUser ?? "postgres",
     allowWrite: config.allowWrite,
