@@ -7,10 +7,11 @@ export interface MockQueryHandler {
 }
 
 export class MockDatabasePool implements DatabasePool {
-  public queries: { sql: string; params?: unknown[] }[] = [];
+  public queries: { sql: string; params?: unknown[]; options?: { timeoutMs?: number; role?: string } }[] = [];
   public handler?: MockQueryHandler;
   public config: ServerConfig;
   public closed = false;
+  public activeRole: string | null = null;
 
   constructor(config?: Partial<ServerConfig>, handler?: MockQueryHandler) {
     this.config = {
@@ -28,12 +29,24 @@ export class MockDatabasePool implements DatabasePool {
     return this.config;
   }
 
+  getActiveRole(): string | null {
+    return this.activeRole;
+  }
+
+  setActiveRole(role: string | null): void {
+    if (role && (role.toUpperCase() === "NONE" || role.toUpperCase() === "RESET")) {
+      this.activeRole = null;
+    } else {
+      this.activeRole = role ? role.trim() : null;
+    }
+  }
+
   async query<R = any>(
     text: string,
     params?: unknown[],
-    _options?: { timeoutMs?: number }
+    options?: { timeoutMs?: number; role?: string }
   ): Promise<{ rows: R[]; fields: { name: string; dataTypeID: number }[]; rowCount: number; command: string; oid: number }> {
-    this.queries.push({ sql: text, params });
+    this.queries.push({ sql: text, params, options });
     if (this.handler) {
       try {
         const res = await this.handler(text, params);

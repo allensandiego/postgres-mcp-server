@@ -80,6 +80,13 @@ export interface WriteQueryResult {
   affectedTables?: string[];
 }
 
+export interface SetRoleResult {
+  activeRole: string;
+  sessionUser: string;
+  isReset: boolean;
+  message: string;
+}
+
 const VALID_ERROR_CODES: Set<string> = new Set([
   "invalid_sql",
   "table_not_found",

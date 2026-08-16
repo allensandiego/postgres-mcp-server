@@ -8,11 +8,15 @@ export const runWriteQuerySchema = {
     .array(z.unknown())
     .optional()
     .describe("Optional parameterized query values ($1, $2, etc.)"),
+  role: z
+    .string()
+    .optional()
+    .describe("Optional PostgreSQL role to assume (SET ROLE) for this write query only"),
 };
 
 export async function runWriteQuery(
   pool: DatabasePool,
-  args: { sql: string; params?: unknown[] }
+  args: { sql: string; params?: unknown[]; role?: string }
 ): Promise<WriteQueryResult> {
   const config = pool.getConfig();
 
@@ -24,8 +28,8 @@ export async function runWriteQuery(
     throw error;
   }
 
-  const { sql, params = [] } = args;
-  const result = await pool.query(sql, params);
+  const { sql, params = [], role } = args;
+  const result = await pool.query(sql, params, { role });
 
   return {
     rowCount: typeof result.rowCount === "number" ? result.rowCount : 0,

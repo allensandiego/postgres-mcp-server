@@ -1,4 +1,5 @@
 import pg from "pg";
+import format from "pg-format";
 import { ServerConfig } from "../config.js";
 import { classifyError } from "../result.js";
 
@@ -8,17 +9,20 @@ export interface DatabasePool {
   query<R extends pg.QueryResultRow = any>(
     text: string,
     params?: unknown[],
-    options?: { timeoutMs?: number }
+    options?: { timeoutMs?: number; role?: string }
   ): Promise<pg.QueryResult<R>>;
   connect(): Promise<pg.PoolClient>;
   testConnection(): Promise<{ ok: boolean; version?: string; error?: string }>;
   close(): Promise<void>;
   getConfig(): ServerConfig;
+  getActiveRole(): string | null;
+  setActiveRole(role: string | null): void;
 }
 
 export class PgDatabasePool implements DatabasePool {
   private pool: pg.Pool;
   private config: ServerConfig;
+  private activeRole: string | null = null;
 
   constructor(config: ServerConfig, customPool?: pg.Pool) {
     this.config = config;
@@ -61,23 +65,57 @@ export class PgDatabasePool implements DatabasePool {
     return this.config;
   }
 
+  getActiveRole(): string | null {
+    return this.activeRole;
+  }
+
+  setActiveRole(role: string | null): void {
+    if (role && (role.toUpperCase() === "NONE" || role.toUpperCase() === "RESET")) {
+      this.activeRole = null;
+    } else {
+      this.activeRole = role ? role.trim() : null;
+    }
+  }
+
   async query<R extends pg.QueryResultRow = any>(
     text: string,
     params?: unknown[],
-    options?: { timeoutMs?: number }
+    options?: { timeoutMs?: number; role?: string }
   ): Promise<pg.QueryResult<R>> {
     const client = await this.connect();
     let hasError = false;
+    let roleApplied = false;
+
+    // Determine target role: query override first, then session active role
+    const effectiveRole = options?.role !== undefined ? options.role : this.activeRole;
+
     try {
       if (options?.timeoutMs) {
         await client.query(`SET statement_timeout = ${Math.floor(options.timeoutMs)}`);
       }
+
+      if (effectiveRole) {
+        if (effectiveRole.toUpperCase() === "NONE" || effectiveRole.toUpperCase() === "RESET") {
+          await client.query("RESET ROLE");
+        } else {
+          await client.query(format("SET ROLE %I", effectiveRole));
+          roleApplied = true;
+        }
+      }
+
       const result = await client.query<R>(text, params);
       return result;
     } catch (err) {
       hasError = true;
       throw classifyError(err);
     } finally {
+      if (roleApplied && !hasError) {
+        try {
+          await client.query("RESET ROLE");
+        } catch {
+          hasError = true; // force destruction of client if reset role failed
+        }
+      }
       client.release(hasError ? true : undefined);
     }
   }

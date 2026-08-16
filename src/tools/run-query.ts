@@ -20,6 +20,10 @@ export const runQuerySchema = {
     .nonnegative()
     .optional()
     .describe("Number of rows to skip before returning results"),
+  role: z
+    .string()
+    .optional()
+    .describe("Optional PostgreSQL role to assume (SET ROLE) for this query only"),
 };
 
 // Check if SQL statement contains potentially mutating or multi-statement commands
@@ -59,9 +63,10 @@ export async function runQuery(
     params?: unknown[];
     limit?: number;
     offset?: number;
+    role?: string;
   }
 ): Promise<QueryResult> {
-  const { sql, params = [], limit, offset } = args;
+  const { sql, params = [], limit, offset, role } = args;
   const config = pool.getConfig();
 
   if (isMutatingQuery(sql)) {
@@ -94,11 +99,11 @@ export async function runQuery(
 
   let dbResult;
   try {
-    dbResult = await pool.query(queryText, queryParams);
+    dbResult = await pool.query(queryText, queryParams, { role });
   } catch (err: any) {
     // If subquery wrapping failed (e.g. for SHOW, EXPLAIN, etc.), fallback to executing raw query
     if (err.code === "invalid_sql" || err.code === "42601") {
-      dbResult = await pool.query(trimmedSql, baseParams);
+      dbResult = await pool.query(trimmedSql, baseParams, { role });
     } else {
       throw err;
     }

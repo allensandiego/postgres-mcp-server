@@ -74,11 +74,29 @@ export async function createTestDatabase(configOverrides: Partial<ServerConfig> 
   };
 
   class InMemTestPool implements DatabasePool {
+    private activeRole: string | null = null;
+
     getConfig(): ServerConfig {
       return config;
     }
 
-    async query<_R = any>(text: string, params?: unknown[], _options?: { timeoutMs?: number }): Promise<any> {
+    getActiveRole(): string | null {
+      return this.activeRole;
+    }
+
+    setActiveRole(role: string | null): void {
+      if (role && (role.toUpperCase() === "NONE" || role.toUpperCase() === "RESET")) {
+        this.activeRole = null;
+      } else {
+        this.activeRole = role ? role.trim() : null;
+      }
+    }
+
+    async query<_R = any>(
+      text: string,
+      params?: unknown[],
+      _options?: { timeoutMs?: number; role?: string }
+    ): Promise<any> {
       const result = await rawPool.query(text, params);
 
       // Enhance pg-mem results with PK/UQ annotations for information_schema discovery queries

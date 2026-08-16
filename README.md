@@ -137,6 +137,7 @@ Execute a read-only parameterized `SELECT` query.
   - `params` *(optional array)*: Parameter substitution values.
   - `limit` *(optional integer)*: Page limit (capped at `MAX_ROW_LIMIT`).
   - `offset` *(optional integer)*: Page offset for pagination.
+  - `role` *(optional string)*: Role/user to assume (`SET ROLE`) for this specific query only.
 - **Output**: `{ columns, rows, rowCount, truncated }`.
 
 ### 7. `run_write_query`
@@ -144,7 +145,14 @@ Execute modifying SQL statements (INSERT, UPDATE, DELETE, DDL). Only active when
 - **Arguments**:
   - `sql` *(required string)*: SQL write statement.
   - `params` *(optional array)*: Parameter values.
+  - `role` *(optional string)*: Role/user to assume (`SET ROLE`) for this specific write query only.
 - **Output**: `{ rowCount }`.
+
+### 8. `set_role`
+Set the active PostgreSQL role/user for the session (`SET ROLE`) or restore the default session user (`RESET ROLE`).
+- **Arguments**:
+  - `role` *(required string)*: Role/username to set (e.g. `"analyst"`, `"app_readonly"`, or `"NONE"` / `"RESET"` to return to the original session user).
+- **Output**: `{ activeRole, sessionUser, isReset, message }`.
 
 ---
 

@@ -9,6 +9,7 @@ import { listRoles, listRolesSchema } from "./tools/list-roles.js";
 import { listTables, listTablesSchema } from "./tools/list-tables.js";
 import { runQuery, runQuerySchema } from "./tools/run-query.js";
 import { runWriteQuery, runWriteQuerySchema } from "./tools/run-write-query.js";
+import { setRole, setRoleSchema } from "./tools/set-role.js";
 
 export interface McpServerContext {
   server: McpServer;
@@ -24,7 +25,7 @@ export function createPostgresMcpServer(
   const server = new McpServer(
     {
       name: "postgres-mcp-server",
-      version: "0.1.3",
+      version: "0.1.4",
     },
     {
       capabilities: {
@@ -167,6 +168,26 @@ export function createPostgresMcpServer(
     async (args) => {
       try {
         const result = await runWriteQuery(pool, args);
+        return formatSuccessResponse(result);
+      } catch (err) {
+        return formatErrorResponse(classifyError(err));
+      }
+    }
+  );
+
+  // 8. set_role (SET ROLE)
+  server.registerTool(
+    "set_role",
+    {
+      description: "Set active PostgreSQL role/user for the session (SET ROLE) or reset to default (RESET ROLE)",
+      inputSchema: setRoleSchema,
+      annotations: {
+        readOnlyHint: false,
+      },
+    },
+    async (args) => {
+      try {
+        const result = await setRole(pool, args);
         return formatSuccessResponse(result);
       } catch (err) {
         return formatErrorResponse(classifyError(err));
