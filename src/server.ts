@@ -24,7 +24,7 @@ export function createPostgresMcpServer(
   const server = new McpServer(
     {
       name: "postgres-mcp-server",
-      version: "0.1.2",
+      version: "0.1.3",
     },
     {
       capabilities: {

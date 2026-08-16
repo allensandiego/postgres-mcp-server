@@ -29,7 +29,7 @@ export class PgDatabasePool implements DatabasePool {
       const poolConfig: pg.PoolConfig = {
         max: config.maxConnections,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000,
         statement_timeout: config.statementTimeoutMs,
         query_timeout: config.queryTimeoutMs,
       };
@@ -67,6 +67,7 @@ export class PgDatabasePool implements DatabasePool {
     options?: { timeoutMs?: number }
   ): Promise<pg.QueryResult<R>> {
     const client = await this.connect();
+    let hasError = false;
     try {
       if (options?.timeoutMs) {
         await client.query(`SET statement_timeout = ${Math.floor(options.timeoutMs)}`);
@@ -74,9 +75,10 @@ export class PgDatabasePool implements DatabasePool {
       const result = await client.query<R>(text, params);
       return result;
     } catch (err) {
+      hasError = true;
       throw classifyError(err);
     } finally {
-      client.release();
+      client.release(hasError ? true : undefined);
     }
   }
 

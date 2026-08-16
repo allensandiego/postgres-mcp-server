@@ -69,8 +69,12 @@ async function main() {
     transport.onclose = () => shutdown("transport close");
   }
 
+  process.on("uncaughtException", (err) => {
+    console.error("Uncaught exception in postgres-mcp-server:", err instanceof Error ? err.stack || err.message : String(err));
+  });
+
   process.on("unhandledRejection", (reason) => {
-    console.error("Unhandled promise rejection:", reason instanceof Error ? reason.message : String(reason));
+    console.error("Unhandled promise rejection in postgres-mcp-server:", reason instanceof Error ? reason.stack || reason.message : String(reason));
   });
 
   await server.connect(transport);
